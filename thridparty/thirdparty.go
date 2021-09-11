@@ -5,4 +5,8 @@ package thridparty
 type ThirdParty interface {
 	ThridPartyPuller
 	UserManager
+	Messager
+	OAuth2
+	Authorizer
+	Caller
 }

@@ -12,7 +12,7 @@ type ThridPartyDepartment struct {
 	// 一旦确认该标识，则不允许被修改，如果修改了则需要重新同步
 	// 所以定义该字段要谨慎
 	Primary    string                 // 主键，唯一性标识
-	ParentId   string                 // 父部门id
+	ParentID   string                 // 父部门id
 	Name       string                 // 部门名称
 	Attributes map[string]interface{} // 部门属性
 }
