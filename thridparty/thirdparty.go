@@ -9,4 +9,5 @@ type ThirdParty interface {
 	OAuth2
 	Authorizer
 	Caller
+	Configer
 }

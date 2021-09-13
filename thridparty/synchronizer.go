@@ -3,18 +3,20 @@ package thridparty
 type ThridPartyUser struct {
 	// 一旦确认该标识，则不允许被修改（如果修改了则需要重新同步）
 	// 所以定义该字段要谨慎
-	Primary    string                 // 主键，唯一性标识
-	Name       string                 // 客户名称
-	Attributes map[string]interface{} // 用户属性
+	Primaries    []string               // 主键，唯一性标识
+	PrimaryValue string                 // 主键的值
+	Hash         uint64                 // xxhash
+	Attributes   map[string]interface{} // 用户属性
 }
 
 type ThridPartyDepartment struct {
 	// 一旦确认该标识，则不允许被修改，如果修改了则需要重新同步
 	// 所以定义该字段要谨慎
-	Primary    string                 // 主键，唯一性标识
-	ParentID   string                 // 父部门id
-	Name       string                 // 部门名称
-	Attributes map[string]interface{} // 部门属性
+	Primary      string                 // 主键，唯一性标识
+	PrimaryValue string                 // 主键的值
+	Hash         uint64                 // xxhash
+	ParentID     string                 // 父部门id
+	Attributes   map[string]interface{} // 部门属性
 }
 
 type InjectIncrementUserCallbackFunc func(users []*ThridPartyUser, depts []*ThridPartyDepartment) error
@@ -23,10 +25,19 @@ type InjectIncrementUserCallbackFunc func(users []*ThridPartyUser, depts []*Thri
 type ThridPartyUserPuller interface {
 	// 三方唯一性标识
 	Label() string
+	// 拉取的用户 PrimaryAttrs 字段，该字段将作为用户的主键进行唯一性匹配
+	// 必须返回 PullUsers() 中拥有的字段名，否则会出现错误
+	// 这里返回数组的原因是，允许使用多个字段进行组合主键，通常返回一个即可，例如微信的openid
+	UserPrimaryAttrs() []string
 	// 拉取用户
 	PullUsers() ([]*ThridPartyUser, error)
+
+	// 拉取的部门 Primary 字段，该字段将作为部门的主键进行唯一性匹配
+	// 必须返回 PullDepts() 中拥有的字段名，否则会出现错误
+	DepartmentPrimaryAttr() string
 	// 拉取部门
 	PullDepts() ([]*ThridPartyDepartment, error)
+
 	// 是否支持增量拉取
 	// 对于像微信、钉钉、飞书等支持增量拉取的第三方，可以返回true
 	IsIncrement() bool
