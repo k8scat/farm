@@ -19,12 +19,11 @@ type ThridPartyDepartment struct {
 	Attributes   map[string]interface{} // 部门属性
 }
 
-type InjectIncrementUserCallbackFunc func(users []*ThridPartyUser, depts []*ThridPartyDepartment) error
+type InjectIncrementUserCallbackFunc func(puller ThridPartyPuller, users []*ThridPartyUser, depts []*ThridPartyDepartment) error
+type InjectPullActionCallbackFunc func(puller ThridPartyPuller) error
 
 // 拉取用户信息
 type ThridPartyUserPuller interface {
-	// 三方唯一性标识
-	Label() string
 	// 拉取的用户 PrimaryAttrs 字段，该字段将作为用户的主键进行唯一性匹配
 	// 必须返回 PullUsers() 中拥有的字段名，否则会出现错误
 	// 这里返回数组的原因是，允许使用多个字段进行组合主键，通常返回一个即可，例如微信的openid
@@ -40,9 +39,12 @@ type ThridPartyUserPuller interface {
 
 	// 是否支持增量拉取
 	// 对于像微信、钉钉、飞书等支持增量拉取的第三方，可以返回true
-	IsIncrement() bool
+	HasIncrement() bool
 	// 当有增量信息时，调用fn传递给Synchronizer
 	InjectPullIncrementCallback(fn InjectIncrementUserCallbackFunc) error
+
+	// 用户触发拉取
+	InjectPullActionFunc(InjectPullActionCallbackFunc) error
 }
 
 // 三方用户过滤器
@@ -56,6 +58,8 @@ type ThridPartyUserFilter interface {
 
 // 三方拉取器
 type ThridPartyPuller interface {
+	// 三方唯一性标识
+	Label() string
 	// 获取三方的拉取能力
 	GetPuller() ThridPartyUserPuller
 	// 获取三方的过滤器
