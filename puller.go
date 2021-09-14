@@ -10,7 +10,6 @@ type Puller interface {
 	Register(puller thridparty.ThridPartyPuller) error
 	RegisterEvent(fn func(event *puller.Event))
 	Start()
-	Stop()
 }
 
 var _ Puller = (*puller.Puller)(nil)
@@ -22,5 +21,21 @@ type PullManager struct {
 func NewPullManager() *PullManager {
 	p := &PullManager{}
 	p.puller = puller.New()
+	p.puller.RegisterEvent(p.onEvent)
 	return p
+}
+
+func (p *PullManager) RegisterPuller(pullers ...thridparty.ThridPartyPuller) {
+	for _, puller := range pullers {
+		p.puller.Register(puller)
+	}
+}
+
+func (p *PullManager) Run() {
+	p.puller.Start()
+}
+
+func (p *PullManager) onEvent(event *puller.Event) {
+	// TODO
+	return
 }

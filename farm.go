@@ -1,5 +1,7 @@
 package farm
 
+import "errors"
+
 var (
 // synchronizer
 // message push center
@@ -29,12 +31,13 @@ func (f *Farm) Start() error {
 
 func (f *Farm) verify() error {
 	if f.pm.puller.Count() == 0 {
-		return nil
+		return errors.New("must init pullers")
 	}
 	return nil
 }
 
 func (f *Farm) run() error {
+	f.pm.Run()
 	return nil
 }
 

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/molizz/farm/thridparty"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 )
 
 var (
@@ -13,11 +13,14 @@ var (
 )
 
 type Event struct {
+	//
 	Puller thridparty.ThridPartyPuller
 	// 是否增量信息（例如新增用户、部门）
 	IsIncrement bool
 	// 用户、部门信息
+	// users hash
 	Users []*thridparty.ThridPartyUser
+	// depts hash
 	Depts []*thridparty.ThridPartyDepartment
 }
 
@@ -55,7 +58,7 @@ func (p *Puller) Register(puller thridparty.ThridPartyPuller) error {
 	userPuller.InjectPullActionFunc(p.onInjectPullCallback)
 
 	if hasCron, spec := puller.Cron(); hasCron {
-		err := p.cron.AddFunc(spec, func() {
+		_, err := p.cron.AddFunc(spec, func() {
 			err := p.pull(userPuller)
 			if err != nil {
 				log.Printf("pull was error: %+v\n", err)
@@ -106,6 +109,7 @@ func (p *Puller) pull(puller thridparty.ThridPartyUserPuller) error {
 		return err
 	}
 
+	// TODO 计算users/depts hash并同步到数据库
 	// TODO puller.GetFilter()
 	p.onEvent(event * Event)
 	return nil
