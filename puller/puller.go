@@ -12,6 +12,8 @@ var (
 	ErrPullerExist = errors.New("ErrPullerExist")
 )
 
+type EventCallbck func(event *Event) error
+
 type Event struct {
 	//
 	Puller thridparty.ThridPartyPuller
@@ -26,7 +28,7 @@ type Event struct {
 
 type Puller struct {
 	thridPartyHub map[string]thridparty.ThridPartyPuller
-	eventFuncs    []func(*Event)
+	eventFuncs    []EventCallbck
 
 	cron *cron.Cron
 }
@@ -34,7 +36,7 @@ type Puller struct {
 func New() *Puller {
 	return &Puller{
 		thridPartyHub: map[string]thridparty.ThridPartyPuller{},
-		eventFuncs:    make([]func(*Event), 0, 2),
+		eventFuncs:    make([]EventCallbck, 0, 2),
 		cron:          cron.New(),
 	}
 }
@@ -59,7 +61,7 @@ func (p *Puller) Register(puller thridparty.ThridPartyPuller) error {
 
 	if hasCron, spec := puller.Cron(); hasCron {
 		_, err := p.cron.AddFunc(spec, func() {
-			err := p.pull(userPuller)
+			err := p.pull(puller)
 			if err != nil {
 				log.Printf("pull was error: %+v\n", err)
 			}
@@ -90,38 +92,46 @@ func (p *Puller) onInjectIncrementCallback(puller thridparty.ThridPartyPuller, u
 }
 
 func (p *Puller) onInjectPullCallback(puller thridparty.ThridPartyPuller) error {
-	return p.pull(puller.GetPuller())
+	return p.pull(puller)
 }
 
-func (p *Puller) pull(puller thridparty.ThridPartyUserPuller) error {
+func (p *Puller) pull(puller thridparty.ThridPartyPuller) error {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Printf("panic: pull users and depts was err: %+v\n", e)
 		}
 	}()
 
-	users, err := puller.PullUsers()
+	users, err := puller.GetPuller().PullUsers()
 	if err != nil {
 		return err
 	}
-	depts, err := puller.PullDepts()
+	depts, err := puller.GetPuller().PullDepts()
 	if err != nil {
 		return err
 	}
 
 	// TODO 计算users/depts hash并同步到数据库
 	// TODO puller.GetFilter()
-	p.onEvent(event * Event)
+	p.onEvent(&Event{
+		Puller:      puller,
+		IsIncrement: false,
+		Users:       users,
+		Depts:       depts,
+	})
 	return nil
 }
 
 func (p *Puller) onEvent(event *Event) error {
+	log.Printf("onEvent: %+v\n", event)
 	for _, fn := range p.eventFuncs {
-
+		if err := fn(event); err != nil {
+			log.Printf("onEvent err: %+v\n", err)
+		}
 	}
 	return nil
 }
 
-func (p *Puller) RegisterEvent(fn func(event *Event)) {
+func (p *Puller) RegisterEvent(fn EventCallbck) {
 	p.eventFuncs = append(p.eventFuncs, fn)
 }

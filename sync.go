@@ -8,7 +8,7 @@ import (
 type Puller interface {
 	Count() int
 	Register(puller thridparty.ThridPartyPuller) error
-	RegisterEvent(fn func(event *puller.Event))
+	RegisterEvent(fn puller.EventCallbck)
 	Start()
 }
 
@@ -35,7 +35,7 @@ func (p *PullManager) Run() {
 	p.puller.Start()
 }
 
-func (p *PullManager) onEvent(event *puller.Event) {
+func (p *PullManager) onEvent(event *puller.Event) error {
 	// TODO
-	return
+	return nil
 }
