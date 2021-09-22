@@ -128,7 +128,7 @@ func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 }
 
 func (p *Puller) onEvent(event *Event) error {
-	log.Printf("onEvent: namespace: %s users count: %d deps count: %d %+v\n",
+	log.Printf("onEvent: namespace: %s users count: %d deps count: %d \n",
 		event.Puller.GetPuller().Namespace(),
 		len(event.Users),
 		len(event.Depts))
