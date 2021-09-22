@@ -12,17 +12,20 @@ type Puller interface {
 	Start()
 }
 
+// Processor 处理Puller的数据
 type Processor interface {
 }
 
-// EventConsumer 将Puller拉下来的数据进行消费
-type EventConsumer interface {
+// Subscriber 同步后的数据进行整理后拆成单独的event，并推送到订阅者
+type Subscriber interface {
 }
 
 var _ Puller = (*puller.Puller)(nil)
 
 type Synchronizer struct {
-	puller Puller
+	puller      Puller
+	processes   []Processor  // TODO
+	subscribers []Subscriber // TODO
 }
 
 func NewSynchronizer() *Synchronizer {
@@ -51,6 +54,9 @@ func (p *Synchronizer) Do() error {
 }
 
 func (p *Synchronizer) onEvent(event *puller.Event) error {
-	// TODO
+	// TODO 将event数据进行filter操作
+	// TODO 将event数据进行merge到数据库
+	// TODO 根据merge得结果产生event通知到订阅者
+
 	return nil
 }

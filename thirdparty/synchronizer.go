@@ -10,7 +10,7 @@ type ThirdPartyUser struct {
 	Primaries    []string               // 主键，唯一性标识
 	PrimaryValue string                 // 主键的值
 	Hash         uint64                 // xxhash
-	Attributes   map[string]interface{} // 用户属性
+	Attributes   map[string]interface{} // 全量的用户属性map
 }
 
 type ThridPartyDepartment struct {
@@ -20,7 +20,7 @@ type ThridPartyDepartment struct {
 	PrimaryValue string                 // 主键的值
 	Hash         uint64                 // xxhash
 	ParentID     string                 // 父部门id
-	Attributes   map[string]interface{} // 部门属性
+	Attributes   map[string]interface{} // 全量的部门属性map
 }
 
 type InjectIncrementUserCallbackFunc func(puller ThirdPartyPuller, users []*ThirdPartyUser, depts []*ThridPartyDepartment) error
@@ -31,24 +31,33 @@ type ThirdPartyUserPuller interface {
 	// Namespace 用于区分不同的Puller
 	// 例 不同的用户，都在使用企业微信时，他们的数据应该是隔离的
 	Namespace() Namespace
+
 	// UserPrimaryAttrs 拉取的用户 PrimaryAttrs 字段，该字段将作为用户的主键进行唯一性匹配
 	// 必须返回 PullUsers() 中拥有的字段名，否则会出现错误
 	// 这里返回数组的原因是，允许使用多个字段进行组合主键，通常返回一个即可，例如微信的openid
 	UserPrimaryAttrs() []string
+
+	// IndexAttrs 需要建立搜索能力的属性
+	// 对于返回了该字段的属性，将对其进行数据库层面的快速检索能力
+	// 当该字段被修改时，应重建索引（异步）
+	IndexAttrs() []string
+
 	// PullUsers 拉取用户
 	PullUsers() ([]*ThirdPartyUser, error)
 
 	// DepartmentPrimaryAttr 拉取的部门 Primary 字段，该字段将作为部门的主键进行唯一性匹配
 	// 必须返回 PullDepts() 中拥有的字段名，否则会出现错误
 	DepartmentPrimaryAttr() string
+
 	// PullDepts 拉取部门
 	PullDepts() ([]*ThridPartyDepartment, error)
 
 	// HasIncrement 是否支持增量拉取
 	// 对于像微信、钉钉、飞书等支持增量拉取的第三方，可以返回true
 	HasIncrement() bool
+
 	// InjectPullIncrementCallback 当有增量信息时，调用fn传递给Synchronizer
-	InjectPullIncrementCallback(fn InjectIncrementUserCallbackFunc) error
+	InjectPullIncrementCallback(InjectIncrementUserCallbackFunc) error
 
 	// InjectPullActionFunc 用户触发拉取
 	InjectPullActionFunc(InjectPullActionCallbackFunc) error
