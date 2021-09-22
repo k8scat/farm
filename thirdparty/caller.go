@@ -1,4 +1,4 @@
-package thridparty
+package thirdparty
 
 type CallerEvent interface {
 	Key() string

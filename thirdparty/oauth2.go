@@ -1,4 +1,4 @@
-package thridparty
+package thirdparty
 
 type OAuth2Config struct {
 	// The OAuth2 client ID.
@@ -29,7 +29,7 @@ type OAuth2Token struct {
 	ExpiryTime int64
 }
 
-type OAuth2UserInfo = ThridPartyUser
+type OAuth2UserInfo = ThirdPartyUser
 
 type OAuth2 interface {
 	// 是否有OAuth2的能力

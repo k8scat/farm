@@ -10,13 +10,13 @@ var (
 
 func New() *Farm {
 	f := &Farm{}
-	f.pm = NewPullManager()
+	f.synchronizer = NewSynchronizer()
 
 	return f
 }
 
 type Farm struct {
-	pm *PullManager
+	synchronizer *Synchronizer
 }
 
 func (f *Farm) Start() error {
@@ -30,17 +30,19 @@ func (f *Farm) Start() error {
 }
 
 func (f *Farm) verify() error {
-	if f.pm.puller.Count() == 0 {
+	if f.synchronizer.puller.Count() == 0 {
 		return errors.New("must init pullers")
 	}
 	return nil
 }
 
 func (f *Farm) run() error {
-	f.pm.Run()
+	if err := f.synchronizer.Do(); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (f *Farm) GetPuller() *PullManager {
-	return f.pm
+func (f *Farm) GetPuller() *Synchronizer {
+	return f.synchronizer
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/molizz/farm/thridparty"
+	"github.com/molizz/farm/thirdparty"
 	"github.com/robfig/cron/v3"
 )
 
@@ -15,19 +15,18 @@ var (
 type EventCallbck func(event *Event) error
 
 type Event struct {
-	//
-	Puller thridparty.ThridPartyPuller
+	Puller thirdparty.ThirdPartyPuller
 	// 是否增量信息（例如新增用户、部门）
 	IsIncrement bool
 	// 用户、部门信息
 	// users hash
-	Users []*thridparty.ThridPartyUser
+	Users []*thirdparty.ThirdPartyUser
 	// depts hash
-	Depts []*thridparty.ThridPartyDepartment
+	Depts []*thirdparty.ThridPartyDepartment
 }
 
 type Puller struct {
-	thridPartyHub map[string]thridparty.ThridPartyPuller
+	thirdPartyHub map[string]thirdparty.ThirdPartyPuller
 	eventFuncs    []EventCallbck
 
 	cron *cron.Cron
@@ -35,29 +34,34 @@ type Puller struct {
 
 func New() *Puller {
 	return &Puller{
-		thridPartyHub: map[string]thridparty.ThridPartyPuller{},
+		thirdPartyHub: map[string]thirdparty.ThirdPartyPuller{},
 		eventFuncs:    make([]EventCallbck, 0, 2),
 		cron:          cron.New(),
 	}
 }
 
 func (p *Puller) Count() int {
-	return len(p.thridPartyHub)
+	return len(p.thirdPartyHub)
 }
 
-func (p *Puller) Register(puller thridparty.ThridPartyPuller) error {
-	if _, exist := p.thridPartyHub[puller.Label()]; exist {
+func (p *Puller) Register(puller thirdparty.ThirdPartyPuller) error {
+	if _, exist := p.thirdPartyHub[puller.Label()]; exist {
 		return ErrPullerExist
 	}
 
-	p.thridPartyHub[puller.Label()] = puller
+	p.thirdPartyHub[puller.Label()] = puller
 
 	userPuller := puller.GetPuller()
 	if userPuller.HasIncrement() {
-		userPuller.InjectPullIncrementCallback(p.onInjectIncrementCallback)
+		err := userPuller.InjectPullIncrementCallback(p.onInjectIncrementCallback)
+		if err != nil {
+			return err
+		}
 	}
 
-	userPuller.InjectPullActionFunc(p.onInjectPullCallback)
+	if err := userPuller.InjectPullActionFunc(p.onInjectPullCallback); err != nil {
+		return err
+	}
 
 	if hasCron, spec := puller.Cron(); hasCron {
 		_, err := p.cron.AddFunc(spec, func() {
@@ -81,7 +85,11 @@ func (p *Puller) Stop() {
 	p.cron.Stop()
 }
 
-func (p *Puller) onInjectIncrementCallback(puller thridparty.ThridPartyPuller, users []*thridparty.ThridPartyUser, depts []*thridparty.ThridPartyDepartment) error {
+func (p *Puller) onInjectIncrementCallback(
+	puller thirdparty.ThirdPartyPuller,
+	users []*thirdparty.ThirdPartyUser,
+	depts []*thirdparty.ThridPartyDepartment) error {
+
 	event := &Event{
 		Puller:      puller,
 		IsIncrement: true,
@@ -91,11 +99,11 @@ func (p *Puller) onInjectIncrementCallback(puller thridparty.ThridPartyPuller, u
 	return p.onEvent(event)
 }
 
-func (p *Puller) onInjectPullCallback(puller thridparty.ThridPartyPuller) error {
+func (p *Puller) onInjectPullCallback(puller thirdparty.ThirdPartyPuller) error {
 	return p.pull(puller)
 }
 
-func (p *Puller) pull(puller thridparty.ThridPartyPuller) error {
+func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Printf("panic: pull users and depts was err: %+v\n", e)
@@ -111,22 +119,23 @@ func (p *Puller) pull(puller thridparty.ThridPartyPuller) error {
 		return err
 	}
 
-	// TODO 计算users/depts hash并同步到数据库
-	// TODO puller.GetFilter()
-	p.onEvent(&Event{
+	return p.onEvent(&Event{
 		Puller:      puller,
 		IsIncrement: false,
 		Users:       users,
 		Depts:       depts,
 	})
-	return nil
 }
 
 func (p *Puller) onEvent(event *Event) error {
-	log.Printf("onEvent: %+v\n", event)
+	log.Printf("onEvent: namespace: %s users count: %d deps count: %d %+v\n",
+		event.Puller.GetPuller().Namespace(),
+		len(event.Users),
+		len(event.Depts))
+
 	for _, fn := range p.eventFuncs {
 		if err := fn(event); err != nil {
-			log.Printf("onEvent err: %+v\n", err)
+			log.Printf("eval onEvent() was err: %+v\n", err)
 		}
 	}
 	return nil

@@ -1,4 +1,4 @@
-package thridparty
+package thirdparty
 
 type Config struct {
 	Values map[string]string // key/value pairs

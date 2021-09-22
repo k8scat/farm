@@ -1,4 +1,4 @@
-package thridparty
+package thirdparty
 
 // 消息发送者
 type MessageSender interface {
