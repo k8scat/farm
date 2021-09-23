@@ -1,26 +1,31 @@
 package thirdparty
 
-import (
-	"strings"
-)
+// 描述信息的所属（上下文？）
+type Context struct {
+	Label     string
+	Namespace string
+}
 
 type ThirdPartyUser struct {
+	// 所属上下文
+	Context *Context
+
 	// 一旦确认该标识，则不允许被修改（如果修改了则需要重新同步）
 	// 所以定义该字段要谨慎
-	Primaries    []string               // 主键，唯一性标识
-	PrimaryValue string                 // 主键的值
-	Hash         uint64                 // xxhash
-	Attributes   map[string]interface{} // 全量的用户属性map
+	Hash       uint64                 // xxhash
+	Attributes map[string]interface{} // 全量的用户属性map
 }
 
 type ThridPartyDepartment struct {
+	// 所属上下文
+	Context *Context
+
 	// 一旦确认该标识，则不允许被修改，如果修改了则需要重新同步
 	// 所以定义该字段要谨慎
-	Primary      string                 // 主键，唯一性标识
-	PrimaryValue string                 // 主键的值
-	Hash         uint64                 // xxhash
-	ParentID     string                 // 父部门id
-	Attributes   map[string]interface{} // 全量的部门属性map
+	Hash       uint64                 // xxhash
+	ID         string                 // 当前ID
+	ParentID   string                 // 父部门ID
+	Attributes map[string]interface{} // 全量的部门属性map
 }
 
 type InjectIncrementUserCallbackFunc func(puller ThirdPartyPuller, users []*ThirdPartyUser, depts []*ThridPartyDepartment) error
@@ -28,10 +33,6 @@ type InjectPullActionCallbackFunc func(puller ThirdPartyPuller) error
 
 // ThirdPartyUserPuller 拉取用户信息
 type ThirdPartyUserPuller interface {
-	// Namespace 用于区分不同的Puller
-	// 例 不同的用户，都在使用企业微信时，他们的数据应该是隔离的
-	Namespace() Namespace
-
 	// UserPrimaryAttrs 拉取的用户 PrimaryAttrs 字段，该字段将作为用户的主键进行唯一性匹配
 	// 必须返回 PullUsers() 中拥有的字段名，否则会出现错误
 	// 这里返回数组的原因是，允许使用多个字段进行组合主键，通常返回一个即可，例如微信的openid
@@ -74,8 +75,6 @@ type ThirdPartyUserFilter interface {
 
 // ThirdPartyPuller 三方拉取器
 type ThirdPartyPuller interface {
-	// Label 三方唯一性标识
-	Label() string
 	// GetPuller 获取三方的拉取能力
 	GetPuller() ThirdPartyUserPuller
 	// GetFilter 获取三方的过滤器
@@ -92,13 +91,4 @@ type Synchronizer interface {
 	// 如果返回错误，则表示该三方同步器重复注册
 	RegisterPuller(puller ThirdPartyPuller) error
 	Do() error
-}
-
-type Namespace string
-
-func NewNamespace(parts ...string) Namespace {
-	if len(parts) <= 1 {
-		panic("invalid namespace parts, must gt 1")
-	}
-	return Namespace(strings.Join(parts, ":"))
 }

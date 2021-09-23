@@ -1,6 +1,10 @@
 package farm
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/molizz/farm/thirdparty"
+)
 
 var (
 // synchronizer
@@ -16,6 +20,7 @@ func New() *Farm {
 }
 
 type Farm struct {
+	thirdparties map[string]thirdparty.ThirdParty
 	synchronizer *Synchronizer
 }
 
@@ -39,6 +44,33 @@ func (f *Farm) verify() error {
 func (f *Farm) run() error {
 	if err := f.synchronizer.Do(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (f *Farm) Register(tp thirdparty.ThirdParty) error {
+	f.thirdparties[tp.Label()] = tp
+
+	if tp.GetThirdPartyPuller() != nil {
+		f.synchronizer.RegisterPuller(tp.Label(), tp.GetThirdPartyPuller())
+	}
+	if tp.GetUserManager() != nil {
+		// TODO
+	}
+	if tp.GetMessager() != nil {
+		// TODO
+	}
+	if tp.GetOAuth2() != nil {
+		// TODO
+	}
+	if tp.GetAuthorizer() != nil {
+		// TODO
+	}
+	if tp.GetCaller() != nil {
+		// TODO
+	}
+	if tp.GetConfiger() != nil {
+		// TODO
 	}
 	return nil
 }

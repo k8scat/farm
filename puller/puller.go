@@ -15,7 +15,6 @@ var (
 type EventCallbck func(event *Event) error
 
 type Event struct {
-	Puller thirdparty.ThirdPartyPuller
 	// 是否增量信息（例如新增用户、部门）
 	IsIncrement bool
 	// 用户、部门信息
@@ -44,12 +43,12 @@ func (p *Puller) Count() int {
 	return len(p.thirdPartyHub)
 }
 
-func (p *Puller) Register(puller thirdparty.ThirdPartyPuller) error {
-	if _, exist := p.thirdPartyHub[puller.Label()]; exist {
+func (p *Puller) Register(label string, puller thirdparty.ThirdPartyPuller) error {
+	if _, exist := p.thirdPartyHub[label]; exist {
 		return ErrPullerExist
 	}
 
-	p.thirdPartyHub[puller.Label()] = puller
+	p.thirdPartyHub[label] = puller
 
 	userPuller := puller.GetPuller()
 	if userPuller.HasIncrement() {
@@ -91,7 +90,6 @@ func (p *Puller) onInjectIncrementCallback(
 	depts []*thirdparty.ThridPartyDepartment) error {
 
 	event := &Event{
-		Puller:      puller,
 		IsIncrement: true,
 		Users:       users,
 		Depts:       depts,
@@ -106,7 +104,7 @@ func (p *Puller) onInjectPullCallback(puller thirdparty.ThirdPartyPuller) error 
 func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Printf("panic: pull users and depts was err: %+v\n", e)
+			log.Printf("panic: pull users and depts got err: %+v\n", e)
 		}
 	}()
 
@@ -120,7 +118,6 @@ func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 	}
 
 	return p.onEvent(&Event{
-		Puller:      puller,
 		IsIncrement: false,
 		Users:       users,
 		Depts:       depts,
@@ -128,14 +125,13 @@ func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 }
 
 func (p *Puller) onEvent(event *Event) error {
-	log.Printf("onEvent: namespace: %s users count: %d deps count: %d \n",
-		event.Puller.GetPuller().Namespace(),
+	log.Printf("onEvent: users count: %d deps count: %d \n",
 		len(event.Users),
 		len(event.Depts))
 
 	for _, fn := range p.eventFuncs {
 		if err := fn(event); err != nil {
-			log.Printf("eval onEvent() was err: %+v\n", err)
+			log.Printf("eval eventFuncs() got err: %+v\n", err)
 		}
 	}
 	return nil

@@ -1,13 +1,14 @@
 package farm
 
 import (
+	"github.com/molizz/farm/exchange"
 	"github.com/molizz/farm/puller"
 	"github.com/molizz/farm/thirdparty"
 )
 
 type Puller interface {
 	Count() int
-	Register(puller thirdparty.ThirdPartyPuller) error
+	Register(label string, puller thirdparty.ThirdPartyPuller) error
 	RegisterEvent(fn puller.EventCallbck)
 	Start()
 }
@@ -16,16 +17,16 @@ type Puller interface {
 type Processor interface {
 }
 
-// Subscriber 同步后的数据进行整理后拆成单独的event，并推送到订阅者
-type Subscriber interface {
-}
-
 var _ Puller = (*puller.Puller)(nil)
 
 type Synchronizer struct {
-	puller      Puller
-	processes   []Processor  // TODO
-	subscribers []Subscriber // TODO
+	puller Puller
+
+	// processor 当从puller中拉取到数据后，对数据进行处理
+	processes []Processor
+
+	// exchange 当processes处理完成后，将数据推送到exchange，Exchange将负责将数据推送出去
+	exchange *exchange.Exchange
 }
 
 func NewSynchronizer() *Synchronizer {
@@ -35,16 +36,18 @@ func NewSynchronizer() *Synchronizer {
 	return p
 }
 
-func (p *Synchronizer) RegisterPuller(pullers ...thirdparty.ThirdPartyPuller) error {
-	for _, pl := range pullers {
-		if err := p.puller.Register(pl); err != nil {
-			return err
-		}
+func (p *Synchronizer) RegisterPuller(label string, puller thirdparty.ThirdPartyPuller) error {
+	if err := p.puller.Register(label, puller); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (p *Synchronizer) RegisterProcessor(processes ...Processor) error {
+	return nil
+}
+
+func (p *Synchronizer) RegisterSubscriber(subscriber exchange.Subscriber) error {
 	return nil
 }
 
