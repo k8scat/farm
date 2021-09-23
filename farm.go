@@ -43,6 +43,6 @@ func (f *Farm) run() error {
 	return nil
 }
 
-func (f *Farm) GetPuller() *Synchronizer {
+func (f *Farm) GetSynchronizer() *Synchronizer {
 	return f.synchronizer
 }
