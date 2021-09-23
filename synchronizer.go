@@ -15,6 +15,7 @@ type Puller interface {
 
 // Processor 处理Puller的数据
 type Processor interface {
+	Process(event *puller.Event) error
 }
 
 var _ Puller = (*puller.Puller)(nil)
