@@ -30,10 +30,12 @@ type Synchronizer struct {
 }
 
 func NewSynchronizer() *Synchronizer {
-	p := &Synchronizer{}
-	p.puller = puller.New()
-	p.puller.RegisterEvent(p.onEvent)
-	return p
+	syncer := &Synchronizer{}
+	syncer.puller = puller.New()
+	syncer.puller.RegisterEvent(syncer.onEvent)
+
+	syncer.processes = syncer.defaultProcessores()
+	return syncer
 }
 
 func (p *Synchronizer) RegisterPuller(label string, puller thirdparty.ThirdPartyPuller) error {
@@ -44,10 +46,14 @@ func (p *Synchronizer) RegisterPuller(label string, puller thirdparty.ThirdParty
 }
 
 func (p *Synchronizer) RegisterProcessor(processes ...Processor) error {
+	p.processes = append(p.processes, processes...)
 	return nil
 }
 
-func (p *Synchronizer) RegisterSubscriber(subscriber exchange.Subscriber) error {
+func (p *Synchronizer) RegisterSubscriber(subscriberes ...exchange.Subscriber) error {
+	for _, sub := range subscriberes {
+		p.exchange.AddSubscriber(sub)
+	}
 	return nil
 }
 
@@ -56,8 +62,16 @@ func (p *Synchronizer) Do() error {
 	return nil
 }
 
+func (p *Synchronizer) defaultProcessores() []Processor {
+	// TODO
+
+	return nil
+}
+
 func (p *Synchronizer) onEvent(event *puller.Event) error {
-	// TODO 将event数据进行filter操作
+	// TODO 清洗不合法的数据（例 primary属性为空）
+	// TODO 清洗不合法的数据（例 数据与db.metadata匹配不上）
+	// TODO 清洗不合法的数据（例 部门中的父子层级对不上的将放在根节点）
 	// TODO 将event数据进行merge到数据库
 	// TODO 根据merge得结果产生event通知到订阅者
 
