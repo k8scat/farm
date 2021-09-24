@@ -65,16 +65,23 @@ func (p *Synchronizer) Do() error {
 
 func (p *Synchronizer) defaultProcessores() []Processor {
 	// TODO
-
-	return nil
+	ret := []Processor{}
+	return ret
 }
 
-func (p *Synchronizer) onEvent(event *puller.Event) error {
-	// TODO 清洗不合法的数据（例 primary属性为空）
-	// TODO 清洗不合法的数据（例 数据与db.metadata匹配不上）
+func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
+	// TODO 清洗不合法的数据（例 primary属性值为空）
+	// TODO 清洗不合法的数据（例 存在重复的primary属性值）
+	// TODO 清洗不合法的数据（例 返回的属性与db.metadata匹配不上）
 	// TODO 清洗不合法的数据（例 部门中的父子层级对不上的将放在根节点）
 	// TODO 将event数据进行merge到数据库
 	// TODO 根据merge得结果产生event通知到订阅者
 
+	for _, process := range p.processes {
+		err = process.Process(event)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
