@@ -18,10 +18,7 @@ type Event struct {
 	// 是否增量信息（例如新增用户、部门）
 	IsIncrement bool
 	// 用户、部门信息
-	// users hash
-	Users []*thirdparty.ThirdPartyUser
-	// depts hash
-	Depts []*thirdparty.ThridPartyDepartment
+	Pack *thirdparty.ThirdPartyPulledPack
 }
 
 type Puller struct {
@@ -86,13 +83,11 @@ func (p *Puller) Stop() {
 
 func (p *Puller) onInjectIncrementCallback(
 	puller thirdparty.ThirdPartyPuller,
-	users []*thirdparty.ThirdPartyUser,
-	depts []*thirdparty.ThridPartyDepartment) error {
+	pack *thirdparty.ThirdPartyPulledPack) error {
 
 	event := &Event{
 		IsIncrement: true,
-		Users:       users,
-		Depts:       depts,
+		Pack:        pack,
 	}
 	return p.onEvent(event)
 }
@@ -108,26 +103,21 @@ func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 		}
 	}()
 
-	users, err := puller.GetPuller().PullUsers()
-	if err != nil {
-		return err
-	}
-	depts, err := puller.GetPuller().PullDepts()
+	pack, err := puller.GetPuller().Pull()
 	if err != nil {
 		return err
 	}
 
 	return p.onEvent(&Event{
 		IsIncrement: false,
-		Users:       users,
-		Depts:       depts,
+		Pack:        pack,
 	})
 }
 
 func (p *Puller) onEvent(event *Event) error {
 	log.Printf("onEvent: users count: %d deps count: %d \n",
-		len(event.Users),
-		len(event.Depts))
+		len(event.Pack.Users),
+		len(event.Pack.Depts))
 
 	for _, fn := range p.eventFuncs {
 		if err := fn(event); err != nil {

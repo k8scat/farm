@@ -1,38 +1,43 @@
 package thirdparty
 
-// 描述信息的所属（上下文？）
+// 描述信息的所属上下文
 type Context struct {
 	Label     string
 	Namespace string
 }
 
 type ThirdPartyUser struct {
-	// 所属上下文
-	Context *Context
-
-	// 一旦确认该标识，则不允许被修改（如果修改了则需要重新同步）
-	// 所以定义该字段要谨慎
-	Hash       uint64                 // xxhash
-	Attributes map[string]interface{} // 全量的用户属性map
+	Context *Context               // 所属上下文
+	Hash    uint64                 // xxhash
+	Values  map[string]interface{} // 全量的用户属性值map
 }
 
 type ThridPartyDepartment struct {
-	// 所属上下文
-	Context *Context
-
-	// 一旦确认该标识，则不允许被修改，如果修改了则需要重新同步
-	// 所以定义该字段要谨慎
-	Hash       uint64                 // xxhash
-	ID         string                 // 当前ID
-	ParentID   string                 // 父部门ID
-	Attributes map[string]interface{} // 全量的部门属性map
+	Context  *Context               // 所属上下文
+	Hash     uint64                 // xxhash
+	ID       string                 // 当前ID
+	ParentID string                 // 父部门ID
+	Values   map[string]interface{} // 全量的部门属性值map
 }
 
-type InjectIncrementUserCallbackFunc func(puller ThirdPartyPuller, users []*ThirdPartyUser, depts []*ThridPartyDepartment) error
+type ThirdPartyPulledPack struct {
+	UsersHash uint64
+	DeptsHash uint64
+
+	Users []*ThirdPartyUser
+	Depts []*ThridPartyDepartment
+}
+
+type InjectIncrementUserCallbackFunc func(puller ThirdPartyPuller, pack *ThirdPartyPulledPack) error
 type InjectPullActionCallbackFunc func(puller ThirdPartyPuller) error
 
 // ThirdPartyUserPuller 拉取用户信息
 type ThirdPartyUserPuller interface {
+	// Namespace 应该返回当前puller的实例级别的唯一标识
+	// 例如 返回 org uuid，表示puller的拉取的用户&部门信息属于哪个组织
+	// 该值也将被保存在数据库中，用于隔离不同的数据
+	Namespace() string
+
 	// UserPrimaryAttrs 拉取的用户 PrimaryAttrs 字段，该字段将作为用户的主键进行唯一性匹配
 	// 必须返回 PullUsers() 中拥有的字段名，否则会出现错误
 	// 这里返回数组的原因是，允许使用多个字段进行组合主键，通常返回一个即可，例如微信的openid
@@ -43,15 +48,12 @@ type ThirdPartyUserPuller interface {
 	// 当该字段被修改时，应重建索引（异步）
 	IndexAttrs() []string
 
-	// PullUsers 拉取用户
-	PullUsers() ([]*ThirdPartyUser, error)
+	// PullUsers 拉取用户、部门
+	Pull() (*ThirdPartyPulledPack, error)
 
 	// DepartmentPrimaryAttr 拉取的部门 Primary 字段，该字段将作为部门的主键进行唯一性匹配
 	// 必须返回 PullDepts() 中拥有的字段名，否则会出现错误
 	DepartmentPrimaryAttr() string
-
-	// PullDepts 拉取部门
-	PullDepts() ([]*ThridPartyDepartment, error)
 
 	// HasIncrement 是否支持增量拉取
 	// 对于像微信、钉钉、飞书等支持增量拉取的第三方，可以返回true
