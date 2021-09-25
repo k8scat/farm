@@ -21,7 +21,7 @@ func New() *Farm {
 
 type Farm struct {
 	thirdparties map[string]thirdparty.ThirdParty
-	synchronizer *Synchronizer
+	synchronizer thirdparty.Synchronizer
 }
 
 func (f *Farm) Start() error {
@@ -35,7 +35,7 @@ func (f *Farm) Start() error {
 }
 
 func (f *Farm) verify() error {
-	if f.synchronizer.puller.Count() == 0 {
+	if f.synchronizer.PullerCount() == 0 {
 		return errors.New("must init pullers")
 	}
 	return nil
@@ -75,6 +75,6 @@ func (f *Farm) Register(tp thirdparty.ThirdParty) error {
 	return nil
 }
 
-func (f *Farm) GetSynchronizer() *Synchronizer {
+func (f *Farm) GetSynchronizer() thirdparty.Synchronizer {
 	return f.synchronizer
 }

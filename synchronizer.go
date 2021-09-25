@@ -2,6 +2,7 @@ package farm
 
 import (
 	"github.com/molizz/farm/exchange"
+	"github.com/molizz/farm/processors"
 	"github.com/molizz/farm/puller"
 	"github.com/molizz/farm/thirdparty"
 )
@@ -15,7 +16,8 @@ type Puller interface {
 
 // Processor 处理Puller的数据
 type Processor interface {
-	Process(event *puller.Event) error
+	Prepare(event *puller.Event) error
+	Process() error
 }
 
 var _ Puller = (*puller.Puller)(nil)
@@ -30,12 +32,12 @@ type Synchronizer struct {
 	exchange *exchange.Exchange
 }
 
-func NewSynchronizer() *Synchronizer {
+func NewSynchronizer() thirdparty.Synchronizer {
 	syncer := &Synchronizer{}
 	syncer.puller = puller.New()
 	syncer.puller.RegisterEvent(syncer.onEvent)
 
-	syncer.processes = syncer.defaultProcessores()
+	syncer.processes = syncer.defaultProcessors()
 	return syncer
 }
 
@@ -51,6 +53,10 @@ func (p *Synchronizer) RegisterProcessor(processes ...Processor) error {
 	return nil
 }
 
+func (p *Synchronizer) PullerCount() int {
+	return p.puller.Count()
+}
+
 func (p *Synchronizer) RegisterSubscriber(subscriberes ...exchange.Subscriber) error {
 	for _, sub := range subscriberes {
 		p.exchange.AddSubscriber(sub)
@@ -63,23 +69,33 @@ func (p *Synchronizer) Do() error {
 	return nil
 }
 
-func (p *Synchronizer) defaultProcessores() []Processor {
-	// TODO
-	ret := []Processor{}
+func (p *Synchronizer) defaultProcessors() []Processor {
+	ret := []Processor{
+		processors.NewPrimaryProccessor(),
+	}
 	return ret
 }
 
 func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
+	// TODO 预备&检查数据
+	// 		例 thirdparty.ThirdPartyPulledPack 中 Users 与 depts hash是否与上一次相同，相同则跳过所有的处理器）
+	// 		例 thirdparty.ThirdPartyPulledPack 中 Users 的属性是否与 ThirdPartyUserPuller.UserPrimaryAttrs() 中提供的字段匹配）
+	// 		例 thirdparty.ThirdPartyPulledPack 中 Users 的属性是否与 ThirdPartyUserPuller.DepartmentPrimaryAttr() 中提供的字段匹配）
+	// 		例 thirdparty.ThirdPartyPulledPack 中 Depts 的属性是否与 ThirdPartyUserPuller.DepartmentPrimaryAttr() 中提供的字段匹配）
+	// TODO 清洗不合法的数据（例 db.metadata 是否初始化，没有初始化则根据 thirdparty.ThirdPartyPulledPack.Users 字段初始化该三方数据库中 columns metadata ）
+	// TODO 清洗不合法的数据（例 返回的属性与db.metadata匹配不上）
 	// TODO 清洗不合法的数据（例 primary属性值为空）
 	// TODO 清洗不合法的数据（例 存在重复的primary属性值）
-	// TODO 清洗不合法的数据（例 返回的属性与db.metadata匹配不上）
 	// TODO 清洗不合法的数据（例 部门中的父子层级对不上的将放在根节点）
 	// TODO 将event数据进行merge到数据库
-	// TODO 根据merge得结果产生event通知到订阅者
+	// TODO 根据merge得结果产生event通知信息
+	// TODO 根据拿到通知信息，根据filter过滤，将通知信息推送到exchange
 
 	for _, process := range p.processes {
-		err = process.Process(event)
-		if err != nil {
+		if err = process.Prepare(event); err != nil {
+			return err
+		}
+		if err = process.Process(); err != nil {
 			return err
 		}
 	}

@@ -91,6 +91,7 @@ type Synchronizer interface {
 	// RegisterPuller 注册三方同步器
 	// 当有三方同步器注册时，会调用该方法
 	// 如果返回错误，则表示该三方同步器重复注册
-	RegisterPuller(puller ThirdPartyPuller) error
+	RegisterPuller(label string, puller ThirdPartyPuller) error
+	PullerCount() int
 	Do() error
 }
