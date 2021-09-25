@@ -1,15 +1,15 @@
 package puller
 
 import (
-	"errors"
 	"log"
 
 	"github.com/molizz/farm/thirdparty"
+	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
 
 var (
-	ErrPullerExist = errors.New("ErrPullerExist")
+	ErrPullerExist = errors.Cause(errors.New("ErrPullerExist"))
 )
 
 type EventCallbck func(event *Event) error
@@ -41,13 +41,20 @@ func (p *Puller) Count() int {
 }
 
 func (p *Puller) Register(label string, puller thirdparty.ThirdPartyPuller) error {
+	if len(label) == 0 {
+		return errors.New("label is required")
+	}
 	if _, exist := p.thirdPartyHub[label]; exist {
 		return ErrPullerExist
 	}
 
+	userPuller := puller.GetPuller()
+	if err := p.verifyPuller(userPuller); err != nil {
+		return err
+	}
+
 	p.thirdPartyHub[label] = puller
 
-	userPuller := puller.GetPuller()
 	if userPuller.HasIncrement() {
 		err := userPuller.InjectPullIncrementCallback(p.onInjectIncrementCallback)
 		if err != nil {
@@ -69,6 +76,28 @@ func (p *Puller) Register(label string, puller thirdparty.ThirdPartyPuller) erro
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (p *Puller) verifyPuller(puller thirdparty.ThirdPartyUserPuller) error {
+	namespaceLen := len(puller.Namespace())
+	if namespaceLen == 0 {
+		return errors.New("namespace is required")
+	}
+
+	userPrimaryAttrsLen := len(puller.UserPrimaryAttrs())
+	if userPrimaryAttrsLen == 0 {
+		return errors.New("user primary attrs must > 1")
+	}
+
+	indexCount := len(puller.IndexAttrs())
+	if indexCount == 0 {
+		return errors.New("index attrs is required")
+	}
+	departmentLen := len(puller.DepartmentPrimaryAttr())
+	if departmentLen == 0 {
+		return errors.New("department primary attr is required")
 	}
 	return nil
 }
