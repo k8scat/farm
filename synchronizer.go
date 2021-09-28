@@ -1,6 +1,9 @@
 package farm
 
 import (
+	"log"
+	"time"
+
 	"github.com/molizz/farm/exchange"
 	"github.com/molizz/farm/processors"
 	"github.com/molizz/farm/puller"
@@ -16,6 +19,7 @@ type Puller interface {
 
 // Processor 处理Puller的数据
 type Processor interface {
+	Name() string
 	Prepare(event *puller.Event) error
 	Process() error
 }
@@ -71,7 +75,7 @@ func (p *Synchronizer) Do() error {
 
 func (p *Synchronizer) defaultProcessors() []Processor {
 	ret := []Processor{
-		processors.NewPrimaryProccessor(),
+		processors.NewPrimaryProcessor(),
 	}
 	return ret
 }
@@ -92,12 +96,15 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 	// TODO 根据拿到通知信息，根据filter过滤，将通知信息推送到exchange
 
 	for _, process := range p.processes {
+		now := time.Now()
+		log.Printf("process '%s'\n", process.Name())
 		if err = process.Prepare(event); err != nil {
 			return err
 		}
 		if err = process.Process(); err != nil {
 			return err
 		}
+		log.Printf("process '%s' total: %v", process.Name(), time.Now().Sub(now))
 	}
 	return nil
 }
