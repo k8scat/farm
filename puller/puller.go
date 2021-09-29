@@ -144,7 +144,7 @@ func (p *Puller) pull(puller thirdparty.ThirdPartyPuller) error {
 }
 
 func (p *Puller) onEvent(event *Event) error {
-	log.Printf("onEvent: users count: %d deps count: %d \n",
+	log.Printf("onEvent: users count: %d depts count: %d \n",
 		len(event.Pack.Users),
 		len(event.Pack.Depts))
 
