@@ -1,7 +1,7 @@
 package thirdparty
 
 type Config struct {
-	Values map[string]string // key/value pairs
+	Values map[string]interface{} // key/value pairs
 }
 
 type Configer interface {

@@ -41,7 +41,7 @@ type ThirdPartyUserPuller interface {
 	// UserPrimaryAttrs 拉取的用户 PrimaryAttrs 字段，该字段将作为用户的主键进行唯一性匹配
 	// 必须返回 PullUsers() 中拥有的字段名，否则会出现错误
 	// 这里返回数组的原因是，允许使用多个字段进行组合主键，通常返回一个即可，例如微信的openid
-	UserPrimaryAttrs() []string
+	PrimaryAttrs() []string
 
 	// IndexAttrs 需要建立搜索能力的属性
 	// 对于返回了该字段的属性，将对其进行数据库层面的快速检索能力

@@ -1,8 +1,10 @@
 package farm
 
 import (
+	"database/sql"
 	"errors"
 
+	dbModel "github.com/molizz/farm/model/db"
 	"github.com/molizz/farm/thirdparty"
 )
 
@@ -24,6 +26,10 @@ type Farm struct {
 	synchronizer thirdparty.Synchronizer
 }
 
+func (f *Farm) SetMysqlDB(db *sql.DB) {
+	dbModel.SetMysqlDB(db)
+}
+
 func (f *Farm) Start() error {
 	if err := f.verify(); err != nil {
 		return err
@@ -35,6 +41,8 @@ func (f *Farm) Start() error {
 }
 
 func (f *Farm) verify() error {
+	dbModel.MustInit()
+
 	if f.synchronizer.PullerCount() == 0 {
 		return errors.New("must init pullers")
 	}
