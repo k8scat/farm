@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/molizz/farm/exchange"
-	"github.com/molizz/farm/processors"
+	"github.com/molizz/farm/processor"
 	"github.com/molizz/farm/puller"
 	"github.com/molizz/farm/thirdparty"
 )
@@ -75,7 +75,7 @@ func (p *Synchronizer) Do() error {
 
 func (p *Synchronizer) defaultProcessors() []Processor {
 	ret := []Processor{
-		processors.NewPrimaryProcessor(),
+		processor.NewPrimaryProcessor(),
 	}
 	return ret
 }

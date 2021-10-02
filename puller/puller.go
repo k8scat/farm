@@ -86,7 +86,7 @@ func (p *Puller) verifyPuller(puller thirdparty.ThirdPartyUserPuller) error {
 		return errors.New("namespace is required")
 	}
 
-	userPrimaryAttrsLen := len(puller.UserPrimaryAttrs())
+	userPrimaryAttrsLen := len(puller.PrimaryAttrs())
 	if userPrimaryAttrsLen == 0 {
 		return errors.New("user primary attrs must > 1")
 	}
