@@ -40,8 +40,8 @@ func NewSynchronizer() thirdparty.Synchronizer {
 	syncer := &Synchronizer{}
 	syncer.puller = puller.New()
 	syncer.puller.RegisterEvent(syncer.onEvent)
-
 	syncer.processes = syncer.defaultProcessors()
+	syncer.exchange = exchange.New()
 	return syncer
 }
 
@@ -92,7 +92,7 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 	// TODO 清洗不合法的数据（例 存在重复的primary属性值）
 	// TODO 清洗不合法的数据（例 部门中的父子层级对不上的将放在根节点）
 	// TODO 将event数据进行merge到数据库
-	// TODO 根据merge得结果产生event通知信息
+	// TODO 根据merge得结果产生event通知信息（将event帖上
 	// TODO 根据拿到通知信息，根据filter过滤，将通知信息推送到exchange
 
 	for _, process := range p.processes {
@@ -102,6 +102,10 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 			return err
 		}
 		if err = process.Process(); err != nil {
+			if err == processor.ErrSkip {
+				log.Printf("process '%s' skipping\n", process.Name())
+				break
+			}
 			return err
 		}
 		log.Printf("processor '%s' eval total: %v", process.Name(), time.Now().Sub(now))
