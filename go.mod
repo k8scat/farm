@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/Masterminds/squirrel v1.5.0
-	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/jmoiron/sqlx v1.3.4
-	github.com/onsi/gomega v1.16.0 // indirect
+	github.com/stretchr/testify v1.5.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
