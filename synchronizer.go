@@ -104,7 +104,8 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 		if err = process.Process(); err != nil {
 			return err
 		}
-		log.Printf("process '%s' total: %v", process.Name(), time.Now().Sub(now))
+		log.Printf("processor '%s' eval total: %v", process.Name(), time.Now().Sub(now))
 	}
-	return nil
+
+	return p.exchange.Push(event)
 }
