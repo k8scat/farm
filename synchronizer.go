@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/molizz/farm/exchange"
+	"github.com/molizz/farm/mq/dbmq"
 	"github.com/molizz/farm/processor"
 	"github.com/molizz/farm/puller"
 	"github.com/molizz/farm/thirdparty"
@@ -13,7 +14,7 @@ import (
 type Puller interface {
 	Count() int
 	Register(label string, puller thirdparty.ThirdPartyPuller) error
-	RegisterEvent(fn puller.EventCallbck)
+	RegisterEventCallback(fn puller.EventCallbck)
 	Start()
 }
 
@@ -39,9 +40,9 @@ type Synchronizer struct {
 func NewSynchronizer() thirdparty.Synchronizer {
 	syncer := &Synchronizer{}
 	syncer.puller = puller.New()
-	syncer.puller.RegisterEvent(syncer.onEvent)
+	syncer.puller.RegisterEventCallback(syncer.onEvent)
 	syncer.processes = syncer.defaultProcessors()
-	syncer.exchange = exchange.New()
+	syncer.exchange = exchange.New(dbmq.New())
 	return syncer
 }
 
@@ -95,7 +96,14 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 	// TODO 根据merge得结果产生event通知信息（将event帖上
 	// TODO 根据拿到通知信息，根据filter过滤，将通知信息推送到exchange
 
-	for _, process := range p.processes {
+	// mergeProcessor「合并」操作是特殊的「Processor」，该处理器必须最后执行
+	// 即使用户调用「RegisterProcessor」注册了额外的处理器
+	mergeProcessor := processor.NewMergeProcessor(func(e *exchange.Event) {
+		p.exchange.Push(e)
+	})
+	processes := append(p.processes, mergeProcessor)
+
+	for _, process := range processes {
 		now := time.Now()
 		log.Printf("process '%s'\n", process.Name())
 		if err = process.Prepare(event); err != nil {
@@ -111,5 +119,5 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 		log.Printf("processor '%s' eval total: %v", process.Name(), time.Now().Sub(now))
 	}
 
-	return p.exchange.Push(event)
+	return
 }

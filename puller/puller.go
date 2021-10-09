@@ -156,6 +156,6 @@ func (p *Puller) onEvent(event *Event) error {
 	return nil
 }
 
-func (p *Puller) RegisterEvent(fn EventCallbck) {
+func (p *Puller) RegisterEventCallback(fn EventCallbck) {
 	p.eventFuncs = append(p.eventFuncs, fn)
 }
