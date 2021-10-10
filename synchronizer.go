@@ -70,6 +70,7 @@ func (p *Synchronizer) RegisterSubscriber(subscriberes ...exchange.Subscriber) e
 
 func (p *Synchronizer) Do() error {
 	p.puller.Start()
+	p.exchange.Start()
 	return nil
 }
 
