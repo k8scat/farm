@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/molizz/farm/exchange"
-	"github.com/molizz/farm/mq/dbmq"
 	"github.com/molizz/farm/processor"
 	"github.com/molizz/farm/puller"
 	"github.com/molizz/farm/thirdparty"
@@ -42,7 +41,7 @@ func NewSynchronizer() thirdparty.Synchronizer {
 	syncer.puller = puller.New()
 	syncer.puller.RegisterEventCallback(syncer.onEvent)
 	syncer.processes = syncer.defaultProcessors()
-	syncer.exchange = exchange.New(dbmq.New())
+	syncer.exchange = exchange.New(exchange.NewMQDB())
 	return syncer
 }
 
