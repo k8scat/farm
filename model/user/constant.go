@@ -73,8 +73,6 @@ var (
 
 type Queryer struct {
 	db.Model
-	Table   string
-	Columns []string
 }
 
 // 三方用户表

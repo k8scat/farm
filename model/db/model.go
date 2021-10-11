@@ -30,3 +30,21 @@ func (m *Model) Select(columns []string, where sq.Sqlizer, dest interface{}) err
 	err = sqlx.Select(m.queryer, dest, query, args...)
 	return errors.WithStack(err)
 }
+
+func (m *Model) StreamSelect(columns []string, where sq.Sqlizer, dest interface{}) error {
+	query, args, err := squirrel.Select(columns...).
+		From(m.tableName).
+		Where(where).ToSql()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	rows, err := m.queryer.Queryx(query, args...)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	rows.
+
+	return errors.WithStack(err)
+
+}
