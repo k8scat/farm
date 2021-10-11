@@ -33,9 +33,10 @@ func (q *Queryer) ListByNamespaceOnStream(namespace string, minID int64, fn func
 		squirrel.Gt{"id": minID},
 	}
 
-	err := q.Select(columns, where, &events)
+	err := q.SelectOfStream(columns, where, &events)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
-	return events, nil
+
+	return nil
 }

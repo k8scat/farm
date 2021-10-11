@@ -31,7 +31,7 @@ func (m *Model) Select(columns []string, where sq.Sqlizer, dest interface{}) err
 	return errors.WithStack(err)
 }
 
-func (m *Model) StreamSelect(columns []string, where sq.Sqlizer, dest interface{}) error {
+func (m *Model) SelectOfStream(columns []string, where sq.Sqlizer, dest interface{}) error {
 	query, args, err := squirrel.Select(columns...).
 		From(m.tableName).
 		Where(where).ToSql()
@@ -43,7 +43,7 @@ func (m *Model) StreamSelect(columns []string, where sq.Sqlizer, dest interface{
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	rows.
+	rows.Next()
 
 	return errors.WithStack(err)
 
