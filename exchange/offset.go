@@ -24,5 +24,6 @@ func (o *Offset) LastOffset() uint64 {
 
 // 设置订阅者的最后一个offset
 func (o *Offset) SetOffset(uint64) error {
+
 	return nil
 }
