@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS `farm_event`;
 CREATE TABLE `farm_event` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `namespace` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '事件的所属命名空间',
-  `payload` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '事件payload',
+  `payload` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '事件payload',
   `create_time` bigint(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_namespace` (`namespace`)
@@ -208,4 +208,4 @@ CREATE TABLE `farm_user_metadata` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-10-11 16:51:17
+-- Dump completed on 2021-10-12 11:57:03

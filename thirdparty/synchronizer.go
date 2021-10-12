@@ -2,22 +2,23 @@ package thirdparty
 
 // 描述信息的所属上下文
 type Context struct {
-	Label     string
-	Namespace string
+	Label     string `json:"label"`
+	Namespace string `json:"namespace"`
 }
 
 type ThirdPartyUser struct {
-	Context *Context               // 所属上下文
-	Hash    uint64                 // xxhash
-	Values  map[string]interface{} // 全量的用户属性值map
+	Context *Context               `json:"context"` // 所属上下文
+	Hash    uint64                 `json:"hash"`    // xxhash
+	Values  map[string]interface{} `json:"values"`  // 全量的用户属性值map
 }
 
 type ThridPartyDepartment struct {
-	Context  *Context               // 所属上下文
-	Hash     uint64                 // xxhash
-	ID       string                 // 当前ID
-	ParentID string                 // 父部门ID
-	Values   map[string]interface{} // 全量的部门属性值map
+	Context  *Context `json:"context"`   // 所属上下文
+	Hash     uint64   `json:"hash"`      // xxhash
+	ID       string   `json:"id"`        // 当前ID
+	ParentID string   `json:"parent_id"` // 父部门ID
+	Name     string   `json:"name"`      //
+	// Values   map[string]interface{} // 全量的部门属性值map
 }
 
 type ThirdPartyPulledPack struct {

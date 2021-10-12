@@ -1,8 +1,19 @@
 package exchange
 
+import (
+	"log"
+	"runtime/debug"
+
+	"github.com/pkg/errors"
+
+	"github.com/reactivex/rxgo/v2"
+)
+
 // Subscriber 同步后的数据进行整理后拆成单独的event，并推送到订阅者
 // 订阅者应该可能至少只有一个实例来接收farm产生的事件
 type Subscriber interface {
+	// 是否开启状态
+	IsEnable() bool
 	// Label 订阅者的标签
 	Label() string
 	// Actions 订阅者的事件类型
@@ -17,14 +28,14 @@ type Subscriber interface {
 }
 
 type OrderlyMQ interface {
-	// 运行mq
+	// Run 运行mq
 	Run() error
-	// Subscribers 注册订阅者
-	Subscribers(...Subscriber)
+	// Register 注册订阅者
+	Register(...Subscriber)
 	// Push 将事件推给MQ
 	Push(*Event) error
 	// Pipe 从MQ中获取事件
-	Pipe() *PipeEvent
+	Pipe() rxgo.Observable
 }
 
 // Exchange 事件管理、推送中心
@@ -36,21 +47,44 @@ type Exchange struct {
 }
 
 func New(mq OrderlyMQ) *Exchange {
-	e := &Exchange{
-		mq: mq,
-	}
+	e := &Exchange{}
+	e.mq = mq
 	return e
 }
 
 func (e *Exchange) Start() {
 	go e.mq.Run()
+	go e.run()
 }
 
 func (e *Exchange) AddSubscriber(sub Subscriber) {
-	e.mq.Subscribers(sub)
+	e.mq.Register(sub)
 }
 
 func (e *Exchange) Push(event *Event) error {
 	// push event
 	return e.mq.Push(event)
+}
+
+func (e *Exchange) run() {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("Exchange run: %s\n", debug.Stack())
+		}
+	}()
+
+	for {
+		select {
+		case eventV := <-e.mq.Pipe().Observe():
+			event := eventV.V.(*PipeEvent)
+			err := event.Wait(func(e *Event) error {
+				err := event.affectedSubscriber.Handle(e)
+				return errors.WithStack(err)
+			})
+			if err != nil {
+				log.Printf("Exchange awarding event was err: %+v, this event '%d' had retry '%d' times.\n",
+					err, event.event.Offset, event.retry)
+			}
+		}
+	}
 }

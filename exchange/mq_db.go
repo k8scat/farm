@@ -1,40 +1,47 @@
 package exchange
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"runtime/debug"
 	"sync"
-	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/molizz/farm/model/db"
+	eventModel "github.com/molizz/farm/model/event"
+	"github.com/pkg/errors"
 	"github.com/reactivex/rxgo/v2"
-)
-
-// MQDB is a message queue is based on database
-// It's needs 'farm_event' and 'farm_subscriber' tables
-
-const (
-	RETRY_COUNT    = 3
-	RETRY_INTERVAL = 3 * time.Second
 )
 
 // MQDB 基于数据库的MQ
 // 如果对于持久性要求不高的话，可以考虑使用 Redis Stream 来实现 MQ
 //
 type MQDB struct {
-	pipe chan *PipeEvent
+	ctx context.Context
+
+	cfg *MQConfig
+
+	pipeSource chan rxgo.Item
+	pipe       rxgo.Observable
 
 	// 当需要从数据库读取event时，该channel会被触发
 	act chan rxgo.Item
 
-	subWG       sync.Mutex
-	subscribers map[string]Subscriber
+	subWG             sync.Mutex
+	subscribers       map[string]Subscriber
+	subscriberProcess *Process // Subscriber的进度管理
 }
 
-func NewMQDB() *MQDB {
+func NewMQDB(ctx context.Context, cfg *MQConfig) *MQDB {
 	mq := new(MQDB)
-	mq.subscribers = make(map[string]Subscriber)
-	mq.pipe = make(chan *PipeEvent, 1)
+	mq.ctx = ctx
+	mq.cfg = cfg
+	mq.pipeSource = make(chan rxgo.Item, 128)
+	mq.pipe = rxgo.FromChannel(mq.pipeSource)
 	mq.act = make(chan rxgo.Item, 128)
+	mq.subscribers = make(map[string]Subscriber)
+	mq.subscriberProcess = NewProcess(1)
 	return mq
 }
 
@@ -44,26 +51,35 @@ func (d *MQDB) Run() error {
 			log.Printf("MQDB: %s\n", debug.Stack())
 		}
 	}()
-	// TODO 从数据库中读取 Subscribers 的offset并初始化
-	// TODO 触发从数据库读取Event的工作
-	//	 TODO 根据 subscribers 从数据库中以流的方式读取Event，并推送rxgo.Pipe，超时未处理或重试n次后未被处理的event将被放弃
-	select {
-	case <-rxgo.FromChannel(d.act).Last().Observe():
 
+	rg := rxgo.FromChannel(d.act)
+
+	for {
+		select {
+		case <-d.ctx.Done():
+			return nil
+		case eventV := <-rg.Observe():
+			event := eventV.V.(*Event)
+			d.readEvents(event)
+		}
 	}
-
-	return nil
 }
 
 func (d *MQDB) Push(e *Event) error {
-	// TODO 推送到数据库
-	//
-	// 触发从数据库读取Event的工作
-	d.act <- rxgo.Item{}
-	return nil
+	// 推送到数据库
+	dbErr := db.Transact(func(tx sqlx.Ext) error {
+		err := eventModel.New(tx).Create(e.ToModel())
+		return errors.WithStack(err)
+	})
+
+	// 触发从数据库读取Event
+	if dbErr == nil {
+		d.act <- rxgo.Item{V: e}
+	}
+	return dbErr
 }
 
-func (d *MQDB) Subscribers(subs ...Subscriber) {
+func (d *MQDB) Register(subs ...Subscriber) {
 	d.subWG.Lock()
 	defer d.subWG.Unlock()
 
@@ -72,13 +88,56 @@ func (d *MQDB) Subscribers(subs ...Subscriber) {
 	}
 }
 
-func (d *MQDB) Pipe() *PipeEvent {
-	return <-d.pipe
+func (d *MQDB) Pipe() rxgo.Observable {
+	return d.pipe
 }
 
-func (d *MQDB) ReadStreamOfEvent() {
+func (d *MQDB) readEvents(event *Event) {
 	for _, sub := range d.subscribers {
-		sub.LastOffset()
-		// TODO
+		if !sub.IsEnable() {
+			log.Printf("Subscriber '%s' is disable, skip.\n", sub.Label())
+			continue
+		}
+
+		actionExist := false
+		for _, ac := range sub.Actions() {
+			if ac == event.Action {
+				actionExist = true
+			}
+		}
+		if !actionExist {
+			log.Printf("Subscriber '%s' actions '%s', Does not match for event actions for '%s', skip.\n",
+				sub.Label(), sub.Actions(), event.Action)
+			continue
+		}
+
+		go d.doReadEvents(sub, event)
+	}
+}
+
+func (d *MQDB) doReadEvents(sub Subscriber, event *Event) {
+	// 同一时刻，同一个Subscriber，只允许一个实例运行
+	defer d.subscriberProcess.Start(sub.Label()).Wait()
+
+	namespace := event.Context.Namespace
+
+	err := eventModel.New(db.GetDB()).ListByNamespaceOnStream(namespace, sub.LastOffset(),
+		func(dbEvent *eventModel.Event) error {
+			newEvent := new(Event)
+			err := json.Unmarshal([]byte(dbEvent.Payload), newEvent)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			d.pipeSource <- rxgo.Item{
+				V: &PipeEvent{
+					event:              newEvent,
+					affectedSubscriber: sub,
+				},
+			}
+			return nil
+		})
+	if err != nil {
+		log.Printf("Reading events was err: %+v\n", err)
 	}
 }

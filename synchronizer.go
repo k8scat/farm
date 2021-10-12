@@ -1,6 +1,7 @@
 package farm
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -37,11 +38,13 @@ type Synchronizer struct {
 }
 
 func NewSynchronizer() thirdparty.Synchronizer {
+	ctx := context.Background() // TODO
+
 	syncer := &Synchronizer{}
 	syncer.puller = puller.New()
 	syncer.puller.RegisterEventCallback(syncer.onEvent)
 	syncer.processes = syncer.defaultProcessors()
-	syncer.exchange = exchange.New(exchange.NewMQDB())
+	syncer.exchange = exchange.New(exchange.NewMQDB(ctx, exchange.DefaultMQConfig))
 	return syncer
 }
 
@@ -61,8 +64,8 @@ func (p *Synchronizer) PullerCount() int {
 	return p.puller.Count()
 }
 
-func (p *Synchronizer) RegisterSubscriber(subscriberes ...exchange.Subscriber) error {
-	for _, sub := range subscriberes {
+func (p *Synchronizer) RegisterSubscriber(subscribers ...exchange.Subscriber) error {
+	for _, sub := range subscribers {
 		p.exchange.AddSubscriber(sub)
 	}
 	return nil
