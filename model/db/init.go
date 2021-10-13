@@ -15,8 +15,8 @@ func MustInit() {
 	}
 }
 
-func SetMysqlDB(stdDB *sql.DB) {
-	db = sqlx.NewDb(stdDB, "mysql")
+func SetDB(stdDB *sql.DB, driverName string) {
+	db = sqlx.NewDb(stdDB, driverName)
 }
 
 func GetDB() *sqlx.DB {

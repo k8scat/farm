@@ -26,8 +26,9 @@ type Farm struct {
 	synchronizer thirdparty.Synchronizer
 }
 
+// SetMysqlDB driverName 大概是
 func (f *Farm) SetMysqlDB(db *sql.DB) {
-	dbModel.SetMysqlDB(db)
+	dbModel.SetDB(db, "mysql")
 }
 
 func (f *Farm) Start() error {
