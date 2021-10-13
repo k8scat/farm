@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/reactivex/rxgo/v2"
@@ -10,17 +11,22 @@ import (
 var _ Subscriber = (*TestSubscriber)(nil)
 
 type TestSubscriber struct {
-	handleOK bool
+	handleMustOK   bool
+	handleExecuted bool
 }
 
 func (t *TestSubscriber) IsEnable() bool { return true }
 
 func (t *TestSubscriber) Label() string { return "test" }
 
-func (t *TestSubscriber) Actions() []Action { return []Action{ActionCreate} }
+func (t *TestSubscriber) Actions() []Action {
+	return []Action{ActionCreate, ActionDelete, ActionUpdate}
+}
 
 func (t *TestSubscriber) Handle(event *Event) error {
-	if t.handleOK {
+	t.handleExecuted = true
+	fmt.Println("handle...", event.ToJSON())
+	if t.handleMustOK {
 		return nil
 	} else {
 		return errors.New("not ok")
@@ -60,7 +66,7 @@ func TestPipeEvent_Wait(t *testing.T) {
 					Users:       nil,
 					Departments: nil,
 				},
-				affectedSubscriber: &TestSubscriber{handleOK: true},
+				affectedSubscriber: &TestSubscriber{handleMustOK: true},
 				observable:         rxgo.Just(items...)(),
 			},
 			args: args{func(event *Event) error {

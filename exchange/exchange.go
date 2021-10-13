@@ -72,7 +72,7 @@ func (e *Exchange) Push(event *Event) error {
 func (e *Exchange) run() {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Printf("Exchange run: %s\n", debug.Stack())
+			log.Printf("Exchange run: %+v - %s\n", e, debug.Stack())
 		}
 	}()
 

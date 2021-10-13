@@ -38,6 +38,7 @@ func (p *PipeEvent) Wait(shouldFunc func(*Event) error) error {
 	err := shouldFunc(p.event)
 	if err != nil {
 		if p.retry > DefaultMQConfig.RetryCount {
+			_ = p.affectedSubscriber.SetOffset(p.event.Offset)
 			return nil
 		}
 
