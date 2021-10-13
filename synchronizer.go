@@ -90,7 +90,6 @@ func (p *Synchronizer) onEvent(event *puller.Event) (err error) {
 	// TODO 预备&检查数据
 	// 		例 thirdparty.ThirdPartyPulledPack 中 Users 与 depts hash是否与上一次相同，相同则跳过所有的处理器）
 	// 		例 thirdparty.ThirdPartyPulledPack 中 Users 的属性是否与 ThirdPartyUserPuller.UserPrimaryAttrs() 中提供的字段匹配）
-	// 		例 thirdparty.ThirdPartyPulledPack 中 Users 的属性是否与 ThirdPartyUserPuller.DepartmentPrimaryAttr() 中提供的字段匹配）
 	// 		例 thirdparty.ThirdPartyPulledPack 中 Depts 的属性是否与 ThirdPartyUserPuller.DepartmentPrimaryAttr() 中提供的字段匹配）
 	// TODO 清洗不合法的数据（例 db.metadata 是否初始化，没有初始化则根据 thirdparty.ThirdPartyPulledPack.Users 字段初始化该三方数据库中 columns metadata ）
 	// TODO 清洗不合法的数据（例 返回的属性与db.metadata匹配不上）
