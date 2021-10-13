@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"context"
 	"log"
 	"runtime/debug"
 
@@ -42,12 +43,14 @@ type OrderlyMQ interface {
 // 订阅者管理中心
 // 将消息推送mq（mq将根据订阅者的情况，选择性的推送到订阅者）
 type Exchange struct {
+	ctx context.Context
 	// 有序的队列
 	mq OrderlyMQ
 }
 
-func New(mq OrderlyMQ) *Exchange {
+func New(ctx context.Context, mq OrderlyMQ) *Exchange {
 	e := &Exchange{}
+	e.ctx = ctx
 	e.mq = mq
 	return e
 }
@@ -75,6 +78,9 @@ func (e *Exchange) run() {
 
 	for {
 		select {
+		case <-e.ctx.Done():
+			log.Printf("Exchange exit.\n")
+			return
 		case eventV := <-e.mq.Pipe().Observe():
 			event := eventV.V.(*PipeEvent)
 			err := event.Wait(func(e *Event) error {

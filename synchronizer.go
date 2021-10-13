@@ -28,6 +28,8 @@ type Processor interface {
 var _ Puller = (*puller.Puller)(nil)
 
 type Synchronizer struct {
+	ctx context.Context
+
 	puller Puller
 
 	// processor 当从puller中拉取到数据后，对数据进行处理
@@ -38,13 +40,13 @@ type Synchronizer struct {
 }
 
 func NewSynchronizer() thirdparty.Synchronizer {
-	ctx := context.Background() // TODO
-
 	syncer := &Synchronizer{}
+	syncer.ctx = context.TODO() // TODO 未来可能会通过ctx来控制流程
 	syncer.puller = puller.New()
 	syncer.puller.RegisterEventCallback(syncer.onEvent)
 	syncer.processes = syncer.defaultProcessors()
-	syncer.exchange = exchange.New(exchange.NewMQDB(ctx, exchange.DefaultMQConfig))
+	syncer.exchange = exchange.New(syncer.ctx,
+		exchange.NewMQDB(syncer.ctx, exchange.DefaultMQConfig))
 	return syncer
 }
 

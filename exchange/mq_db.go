@@ -133,6 +133,7 @@ func (d *MQDB) doReadEvents(sub Subscriber, event *Event) {
 				V: &PipeEvent{
 					event:              newEvent,
 					affectedSubscriber: sub,
+					observable:         d.pipe,
 				},
 			}
 			return nil

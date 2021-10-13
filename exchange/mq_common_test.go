@@ -35,12 +35,14 @@ func TestPipeEvent_Wait(t *testing.T) {
 	type fields struct {
 		event              *Event
 		affectedSubscriber Subscriber
-		obs                rxgo.Observable
+		observable         rxgo.Observable
 	}
 
 	type args struct {
 		shouldFunc func(*Event) error
 	}
+
+	var items = []interface{}{"1", "2"}
 
 	tests := []struct {
 		name    string
@@ -59,11 +61,12 @@ func TestPipeEvent_Wait(t *testing.T) {
 					Departments: nil,
 				},
 				affectedSubscriber: &TestSubscriber{handleOK: true},
-				obs:                rxgo.Just("1", "2")(),
+				observable:         rxgo.Just(items...)(),
 			},
 			args: args{func(event *Event) error {
 				return errors.New("handle err")
 			}},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -71,10 +74,19 @@ func TestPipeEvent_Wait(t *testing.T) {
 			p := &PipeEvent{
 				event:              tt.fields.event,
 				affectedSubscriber: tt.fields.affectedSubscriber,
-				obs:                tt.fields.obs,
+				observable:         tt.fields.observable,
 			}
 			if err := p.Wait(tt.args.shouldFunc); (err != nil) != tt.wantErr {
 				t.Errorf("Wait() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				// err
+				i := 0
+				for val := range p.observable.Observe() {
+					if items[i] != val.V.(string) {
+						t.Errorf("Observe 返回错误时间，items的数据应该恢复一致，当前值：%s", val.V.(string))
+					}
+					i++
+				}
 			}
 		})
 	}
