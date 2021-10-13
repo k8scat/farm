@@ -43,6 +43,10 @@ func (f *Farm) Start() error {
 func (f *Farm) verify() error {
 	dbModel.MustInit()
 
+	if len(f.thirdparties) == 0 {
+		return errors.New("must init thirdParties")
+	}
+
 	if f.synchronizer.PullerCount() == 0 {
 		return errors.New("must init pullers")
 	}
@@ -60,7 +64,10 @@ func (f *Farm) Register(tp thirdparty.ThirdParty) error {
 	f.thirdparties[tp.Label()] = tp
 
 	if tp.GetThirdPartyPuller() != nil {
-		f.synchronizer.RegisterPuller(tp.Label(), tp.GetThirdPartyPuller())
+		err := f.synchronizer.RegisterPuller(tp.Label(), tp.GetThirdPartyPuller())
+		if err != nil {
+			return err
+		}
 	}
 	if tp.GetUserManager() != nil {
 		// TODO
